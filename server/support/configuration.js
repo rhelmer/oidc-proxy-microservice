@@ -7,10 +7,10 @@ import Account from './account.js';
 
 export default {
   clients: [{
-    client_id: env.CLIENT_ID,
-    client_secret: env.CLIENT_SECRET,
+    client_id: env.OIDCP_CLIENT_ID,
+    client_secret: env.OIDCP_CLIENT_SECRET,
     grant_types: ['refresh_token', 'authorization_code'],
-    redirect_uris: env.REDIRECT_URIS.split("|"),
+    redirect_uris: env.OIDCP_REDIRECT_URIS.split("|"),
     token_endpoint_auth_methods_supported: ['client_secret_post'],
   }],
   // clientAuthMethods: [ 'client_secret_post' ],

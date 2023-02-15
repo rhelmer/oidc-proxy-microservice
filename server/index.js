@@ -16,6 +16,9 @@ import env from './env.js';
 import configuration from './support/configuration.js';
 import routes from './routes.js';
 import providerHelper from './provider.js';
+import client from './client.js';
+
+await client.initialize();
 
 const app = express();
 
@@ -33,25 +36,28 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.enable('trust proxy');
 
-app.use((req, res, next) => {
-  if (req.secure) {
-    next();
-  } else if (req.method === 'GET' || req.method === 'HEAD') {
-    res.redirect(url.format({
-      protocol: 'https',
-      host: req.get('host'),
-      pathname: req.originalUrl,
-    }));
-  } else {
-    res.status(400).json({
-      error: 'invalid_request',
-      error_description: 'do yourself a favor and only use https',
-    });
-  }
-});
+if (!env.OIDCP_ALLOW_HTTP_REQUESTS) {
+console.log(env.OIDCP_ALLOW_HTTP_REQUESTS);
+  app.use((req, res, next) => {
+    if (req.secure) {
+      next();
+    } else if (req.method === 'GET' || req.method === 'HEAD') {
+      res.redirect(url.format({
+        protocol: 'https',
+        host: req.get('host'),
+        pathname: req.originalUrl,
+      }));
+    } else {
+      res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'do yourself a favor and only use https',
+      });
+    }
+  });
+}
 
-const provider = providerHelper.create(env.ISSUER, configuration);
+const provider = providerHelper.create(env.OIDCP_ISSUER, configuration);
 routes(app, provider, providerHelper.errors.SessionNotFound);
 app.use(provider.callback());
 
-app.listen(env.PORT);
+app.listen(env.OIDCP_PORT);

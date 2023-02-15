@@ -6,11 +6,19 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const ENVIRONMENT_VARIABLES = [
-  "PORT",
-  "ISSUER",
-  "CLIENT_ID",
-  "CLIENT_SECRET",
-  "REDIRECT_URIS",
+  // OIDC Provider settings
+  "OIDCP_PORT",
+  "OIDCP_ISSUER",
+  "OIDCP_CLIENT_ID",
+  "OIDCP_CLIENT_SECRET",
+  "OIDCP_REDIRECT_URIS",
+  "OIDCP_ALLOW_HTTP_REQUESTS",
+
+  // OIDC Client settings
+  "OIDC_ISSUER",
+  "OIDC_CLIENT_ID",
+  "OIDC_CLIENT_SECRET",
+  "OIDC_REDIRECT_URIS",
 ];
 
 const config = {};
