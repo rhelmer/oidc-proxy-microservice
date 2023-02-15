@@ -1,0 +1,10 @@
+# Dependency directories
+node_modules
+
+# Config
+.env
+
+# Editor files
+*.code-workspace
+*.swp
+.vscode
