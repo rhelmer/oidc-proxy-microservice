@@ -2,59 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import * as url from 'node:url';
+
+import oidc from './oidc.js';
 import {
   strict as assert
 } from 'node:assert';
-import * as querystring from 'node:querystring';
-import {
-  inspect
-} from 'node:util';
-
-import isEmpty from 'lodash/isEmpty.js';
-import {
-  urlencoded
-} from 'express';
-
 import Account from './support/account.js';
 
-const body = urlencoded({
-  extended: false
-});
-
-const keys = new Set();
-const debug = (obj) => querystring.stringify(Object.entries(obj).reduce((acc, [key, value]) => {
-  keys.add(key);
-  if (isEmpty(value)) return acc;
-  acc[key] = inspect(value, {
-    depth: null
-  });
-  return acc;
-}, {}), '<br/>', ': ', {
-  encodeURIComponent(value) {
-    return keys.has(value) ? `<strong>${value}</strong>` : value;
-  },
-});
-
 export default (app, provider, SessionNotFound) => {
-  app.use((req, res, next) => {
-    const orig = res.render;
-    // you'll probably want to use a full blown render engine capable of layouts
-    res.render = (view, locals) => {
-      app.render(view, locals, (err, html) => {
-        if (err) throw err;
-        orig.call(res, '_layout', {
-          ...locals,
-          body: html,
-        });
-      });
-    };
-    next();
-  });
-
   function setNoCache(req, res, next) {
     res.set('cache-control', 'no-store');
     next();
   }
+
+  app.get('/interaction/callback', setNoCache, async (req, res, next) => {
+    res.redirect(url.format({
+      pathname: `/interaction/${req.session.uid}/callback`,
+      query: req.query
+    }));
+  });
 
   app.get('/interaction/:uid', setNoCache, async (req, res, next) => {
     try {
@@ -65,24 +32,28 @@ export default (app, provider, SessionNotFound) => {
         session,
       } = await provider.interactionDetails(req, res);
 
-      const client = await provider.Client.find(params.client_id);
-
       switch (prompt.name) {
         case 'login': {
-          return res.render('login', {
-            client,
-            uid,
-            details: prompt.details,
-            params,
-            title: 'Sign-in',
-            session: session ? debug(session) : undefined,
-            dbg: {
-              params: debug(params),
-              prompt: debug(prompt),
-            },
-          });
+          req.session.uid = uid;
+          req.session.state = params.state;
+
+          res.redirect(oidc.authorizationUrl({
+            redirect_uri: url.format({
+              protocol: req.protocol,
+              host: req.get('host'),
+              pathname: '/interaction/callback',
+            }),
+            state: params.state,
+            scope: params.scope,
+            response_type: params.response_type,
+          }));
+          break;
         }
+
         case 'consent': {
+          const client = await provider.Client.find(params.client_id);
+
+          /* TODO
           return res.render('interaction', {
             client,
             uid,
@@ -95,7 +66,9 @@ export default (app, provider, SessionNotFound) => {
               prompt: debug(prompt),
             },
           });
+	  */
         }
+
         default:
           return undefined;
       }
@@ -104,7 +77,7 @@ export default (app, provider, SessionNotFound) => {
     }
   });
 
-  app.post('/interaction/:uid/login', setNoCache, body, async (req, res, next) => {
+  app.get('/interaction/:uid/callback', setNoCache, async (req, res, next) => {
     try {
       const {
         prompt: {
@@ -112,6 +85,14 @@ export default (app, provider, SessionNotFound) => {
         }
       } = await provider.interactionDetails(req, res);
       assert.equal(name, 'login');
+
+      const tokenSet = await oidc.callback(req);
+      console.log('received and validated tokens %j', tokenSet);
+      console.log('validated ID Token claims %j', tokenSet.claims());
+
+      const userinfo = await oidc._client.userinfo(tokenSet.access_token);
+      console.log('userinfo %j', userinfo);
+
       const account = await Account.findByLogin(req.body.login);
 
       const result = {
@@ -128,7 +109,7 @@ export default (app, provider, SessionNotFound) => {
     }
   });
 
-  app.post('/interaction/:uid/confirm', setNoCache, body, async (req, res, next) => {
+  app.post('/interaction/:uid/confirm', setNoCache, async (req, res, next) => {
     try {
       const interactionDetails = await provider.interactionDetails(req, res);
       const {

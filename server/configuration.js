@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import env from '../env.js';
-import Account from './account.js';
+import env from './env.js';
+import error from './error.js';
+import Account from './support/account.js';
 
 export default {
   clients: [{
@@ -13,15 +14,23 @@ export default {
     redirect_uris: env.OIDCP_REDIRECT_URIS.split("|"),
     token_endpoint_auth_methods_supported: ['client_secret_post'],
   }],
-  // clientAuthMethods: [ 'client_secret_post' ],
+  clientBasedCORS: () => true,
+  pkce: {
+    required: (ctx, client) => false,
+  },
   interactions: {
     url(ctx, interaction) {
       return `/interaction/${interaction.uid}`;
     },
   },
+  renderError: error,
   cookies: {
-    keys: ['some secret key', 'and also the old rotated away some time ago', 'and one more'],
+    keys: env.OIDCP_COOKIE_SECRETS.split("|"),
   },
+
+  // TODO
+
+  // clientAuthMethods: [ 'client_secret_post' ],
   claims: {
     openid: [],
     email: [],
@@ -63,10 +72,6 @@ export default {
       x: 'FWZ9rSkLt6Dx9E3pxLybhdM6xgR5obGsj5_pqmnz5J4',
       y: '_n8G69C-A2Xl4xUW2lF0i8ZGZnk_KPYrhv4GbTGu5G4',
     }, ],
-  },
-  clientBasedCORS: () => true,
-  pkce: {
-    required: (ctx, client) => false,
   },
   findAccount: Account.findAccount,
 };

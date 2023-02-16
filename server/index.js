@@ -5,22 +5,22 @@
 import * as path from 'node:path';
 import * as url from 'node:url';
 
-import {
-  dirname
-} from 'desm';
 import express from 'express';
+import session from 'express-session';
 import helmet from 'helmet';
 import https from 'https';
 
 import env from './env.js';
-import configuration from './support/configuration.js';
+import configuration from './configuration.js';
 import routes from './routes.js';
 import providerHelper from './provider.js';
-import client from './client.js';
+import oidc from './oidc.js';
 
-await client.initialize();
+await oidc.initialize();
 
 const app = express();
+
+app.enable('trust proxy');
 
 const directives = helmet.contentSecurityPolicy.getDefaultDirectives();
 delete directives['form-action'];
@@ -31,13 +31,16 @@ app.use(helmet({
   },
 }));
 
-const __dirname = dirname(import.meta.url);
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-app.enable('trust proxy');
+const sessionParams = {
+  secret: env.OIDCP_SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {},
+};
 
 if (!env.OIDCP_ALLOW_HTTP_REQUESTS) {
-console.log(env.OIDCP_ALLOW_HTTP_REQUESTS);
+  sessionParams.cooke.secure = true;
+
   app.use((req, res, next) => {
     if (req.secure) {
       next();
@@ -55,6 +58,8 @@ console.log(env.OIDCP_ALLOW_HTTP_REQUESTS);
     }
   });
 }
+
+app.use(session(sessionParams))
 
 const provider = providerHelper.create(env.OIDCP_ISSUER, configuration);
 routes(app, provider, providerHelper.errors.SessionNotFound);

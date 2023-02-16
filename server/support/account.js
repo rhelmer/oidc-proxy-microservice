@@ -69,14 +69,6 @@ class Account {
     };
   }
 
-  static async findByFederated(provider, claims) {
-    const id = `${provider}.${claims.sub}`;
-    if (!logins.get(id)) {
-      logins.set(id, new Account(id, claims));
-    }
-    return logins.get(id);
-  }
-
   static async findByLogin(login) {
     if (!logins.get(login)) {
       logins.set(login, new Account(login));
