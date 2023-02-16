@@ -1,0 +1,9 @@
+<h1>Hello world <%= userinfo.email %>!</h1>
+
+<img href="<%= userinfo.avatar %>" />
+
+<p>Here we are going to show you something important to read!</p>
+
+<form autocomplete="off" action="/interaction/<%= uid %>/confirm" method="post">
+  <button autofocus type="submit" class="login login-submit">Continue</button>
+</form>

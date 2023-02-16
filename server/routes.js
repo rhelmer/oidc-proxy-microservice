@@ -5,10 +5,10 @@
 import * as url from 'node:url';
 
 import oidc from './oidc.js';
+import env from './env.js';
 import {
   strict as assert
 } from 'node:assert';
-import Account from './support/account.js';
 
 export default (app, provider, SessionNotFound) => {
   function setNoCache(req, res, next) {
@@ -29,7 +29,6 @@ export default (app, provider, SessionNotFound) => {
         uid,
         prompt,
         params,
-        session,
       } = await provider.interactionDetails(req, res);
 
       switch (prompt.name) {
@@ -52,21 +51,10 @@ export default (app, provider, SessionNotFound) => {
 
         case 'consent': {
           const client = await provider.Client.find(params.client_id);
-
-          /* TODO
-          return res.render('interaction', {
-            client,
+          return res.render('consent', {
             uid,
-            details: prompt.details,
-            params,
-            title: 'Authorize',
-            session: session ? debug(session) : undefined,
-            dbg: {
-              params: debug(params),
-              prompt: debug(prompt),
-            },
+            userinfo: req.session.userinfo,
           });
-	  */
         }
 
         default:
@@ -87,19 +75,19 @@ export default (app, provider, SessionNotFound) => {
       assert.equal(name, 'login');
 
       const tokenSet = await oidc.callback(req);
-      console.log('received and validated tokens %j', tokenSet);
-      console.log('validated ID Token claims %j', tokenSet.claims());
-
       const userinfo = await oidc._client.userinfo(tokenSet.access_token);
-      console.log('userinfo %j', userinfo);
 
-      const account = await Account.findByLogin(req.body.login);
+      if (!(env.OIDC_UNIQUE_FIELD in userinfo)) {
+        throw new Error(`Unable to use "${env.OIDC_UNIQUE_FIELD}" as unique field`);
+      }
 
       const result = {
         login: {
-          accountId: account.accountId,
+          accountId: userinfo[env.OIDC_UNIQUE_FIELD],
         },
       };
+
+      req.session.userinfo = userinfo;
 
       await provider.interactionFinished(req, res, result, {
         mergeWithLastSubmission: false

@@ -8,8 +8,10 @@ import * as url from 'node:url';
 import express from 'express';
 import session from 'express-session';
 import helmet from 'helmet';
-import https from 'https';
 
+import {
+  dirname
+} from 'desm';
 import env from './env.js';
 import configuration from './configuration.js';
 import routes from './routes.js';
@@ -19,6 +21,9 @@ import oidc from './oidc.js';
 await oidc.initialize();
 
 const app = express();
+const __dirname = dirname(import.meta.url);
+app.set('views', path.join(__dirname, '..', 'views'));
+app.set('view engine', 'ejs');
 
 app.enable('trust proxy');
 

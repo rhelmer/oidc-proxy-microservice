@@ -21,6 +21,7 @@ const ENVIRONMENT_VARIABLES = [
   "OIDC_CLIENT_ID",
   "OIDC_CLIENT_SECRET",
   "OIDC_CALLBACK",
+  "OIDC_UNIQUE_FIELD",
 ];
 
 const config = {};
