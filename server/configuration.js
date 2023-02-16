@@ -4,7 +4,7 @@
 
 import env from './env.js';
 import error from './error.js';
-import Account from './support/account.js';
+import Account from './account.js';
 
 export default {
   clients: [{

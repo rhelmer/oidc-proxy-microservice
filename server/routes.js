@@ -4,6 +4,7 @@
 
 import * as url from 'node:url';
 
+import Account from './account.js';
 import oidc from './oidc.js';
 import env from './env.js';
 import {
@@ -68,11 +69,10 @@ export default (app, provider, SessionNotFound) => {
   app.get('/interaction/:uid/callback', setNoCache, async (req, res, next) => {
     try {
       const {
-        prompt: {
-          name
-        }
+        uid,
+        prompt,
       } = await provider.interactionDetails(req, res);
-      assert.equal(name, 'login');
+      assert.equal(prompt.name, 'login');
 
       const tokenSet = await oidc.callback(req);
       const userinfo = await oidc._client.userinfo(tokenSet.access_token);
@@ -81,13 +81,47 @@ export default (app, provider, SessionNotFound) => {
         throw new Error(`Unable to use "${env.OIDC_UNIQUE_FIELD}" as unique field`);
       }
 
+      req.session.userinfo = userinfo;
+
+      const account = await Account.findOidcSub(userinfo[env.OIDC_UNIQUE_FIELD]);
+      if (account) {
+        const result = {
+          login: {
+            accountId: accountId,
+          },
+        };
+
+        await provider.interactionFinished(req, res, result, {
+          mergeWithLastSubmission: false
+        });
+        return;
+      }
+
+      return res.render('create', {
+        uid,
+        userinfo,
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/interaction/:uid/create', setNoCache, async (req, res, next) => {
+    try {
+      const {
+        uid,
+        prompt,
+      } = await provider.interactionDetails(req, res);
+      assert.equal(prompt.name, 'login');
+
+      // TODO: this should return "false" in case this handler has been taken in the meantime.
+      Account.addOidcSubHandler(req.session.userinfo[env.OIDC_UNIQUE_FIELD], req.body.handler);
+
       const result = {
         login: {
-          accountId: userinfo[env.OIDC_UNIQUE_FIELD],
+          accountId: req.body.handler
         },
       };
-
-      req.session.userinfo = userinfo;
 
       await provider.interactionFinished(req, res, result, {
         mergeWithLastSubmission: false

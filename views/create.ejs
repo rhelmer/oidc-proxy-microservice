@@ -1,0 +1,10 @@
+<h1>Hello world <%= userinfo.email %>!</h1>
+
+<img href="<%= userinfo.avatar %>" />
+
+<p>Please, chooose your handler</p>
+
+<form autocomplete="off" action="/interaction/<%= uid %>/create" method="post">
+  <input required type="text" name="handler" placeholder="Enter what you wish to see">
+  <button type="submit">Create</button>
+</form>
