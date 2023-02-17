@@ -5,8 +5,12 @@
 import env from './env.js';
 import error from './error.js';
 import Account from './account.js';
+import Adapter from './adapter.js';
+import knex from './knex.js';
 
 export default {
+  adapter: Adapter(knex),
+
   clients: [{
     client_id: env.OIDCP_CLIENT_ID,
     client_secret: env.OIDCP_CLIENT_SECRET,
