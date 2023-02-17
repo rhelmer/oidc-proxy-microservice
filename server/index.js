@@ -17,6 +17,7 @@ import configuration from './configuration.js';
 import routes from './routes.js';
 import providerHelper from './provider.js';
 import oidc from './oidc.js';
+import knex from './knex.js';
 
 await oidc.initialize();
 

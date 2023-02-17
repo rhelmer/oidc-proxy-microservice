@@ -83,11 +83,11 @@ export default (app, provider, SessionNotFound) => {
 
       req.session.userinfo = userinfo;
 
-      const account = await Account.findOidcSub(userinfo[env.OIDC_UNIQUE_FIELD]);
-      if (account) {
+      const accounts = await Account.findAccountFromSub(userinfo[env.OIDC_UNIQUE_FIELD]);
+      if (accounts.length) {
         const result = {
           login: {
-            accountId: accountId,
+            accountId: accounts[0].account,
           },
         };
 
@@ -114,8 +114,13 @@ export default (app, provider, SessionNotFound) => {
       } = await provider.interactionDetails(req, res);
       assert.equal(prompt.name, 'login');
 
-      // TODO: this should return "false" in case this handler has been taken in the meantime.
-      Account.addOidcSubHandler(req.session.userinfo[env.OIDC_UNIQUE_FIELD], req.body.handler);
+      if (!await Account.addSubAndAccount(req.session.userinfo[env.OIDC_UNIQUE_FIELD], req.body.handler)) {
+        return res.render('create', {
+          uid,
+          userinfo: req.session.userinfo,
+          error: "already_in_use",
+        });
+      }
 
       const result = {
         login: {

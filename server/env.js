@@ -3,7 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import * as dotenv from "dotenv";
-dotenv.config();
+import {
+  resolve
+} from "path";
+import {
+  dirname
+} from 'desm';
+
+const __dirname = dirname(import.meta.url);
+dotenv.config({
+  path: resolve(__dirname, "../.env")
+});
 
 const ENVIRONMENT_VARIABLES = [
   // OIDC Provider settings
@@ -22,6 +32,10 @@ const ENVIRONMENT_VARIABLES = [
   "OIDC_CLIENT_SECRET",
   "OIDC_CALLBACK",
   "OIDC_UNIQUE_FIELD",
+
+  // DB settings
+  "DB_CONNECTION",
+  "DB_CLIENT",
 ];
 
 const config = {};
