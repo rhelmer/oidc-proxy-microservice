@@ -13,5 +13,5 @@ exports.up = function(knex) {
 };
 
 exports.down = function(knex) {
-  return knex.dropTableIfExists("oidc_payloads");
+  return knex.schema.dropTableIfExists("oidc_payloads");
 };

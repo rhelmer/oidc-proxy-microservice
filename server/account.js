@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// This needs to be a DB
-const db = new Map();
+import knex from "./knex.js";
 
 async function findAccount(ctx, sub, token) {
   return {
@@ -16,16 +15,24 @@ async function findAccount(ctx, sub, token) {
   };
 }
 
-async function findOidcSub(sub) {
-  return db.get(sub);
+async function findAccountFromSub(sub) {
+  return knex("sub_to_account").select("account").where("sub", sub);
 }
 
-async function addOidcSubHandler(sub, accountId) {
-  db.set(sub, accountId);
+async function addSubAndAccount(sub, account) {
+  try {
+    await knex("sub_to_account").insert({
+      sub,
+      account
+    })
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 export default {
   findAccount,
-  findOidcSub,
-  addOidcSubHandler,
+  findAccountFromSub,
+  addSubAndAccount,
 };
